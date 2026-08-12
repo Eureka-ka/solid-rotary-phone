@@ -50,8 +50,49 @@ N_ch=100, w_ch=0.08mm, H_ch_ref=0.5mm, M=4, delta_sub=0.2mm, fin_per_row=3
 ### 运行方式
     python run_thermal_resistance.py
 
+
+## ✅ 已完成：第一问·压降机理模型（Python 实现）
+
+### 模型概要（参考思路：多段串联）
+    dP = dP_manifold + dP_channel + dP_pin + dP_turn
+- 沿程：Darcy-Weisbach dP_f = f*(L/D_h)*(rho*V^2/2)，f=64/Re（层流）/Blasius
+- 针肋：dP_pin = (M*n*fin_per_row) * C_D * (0.5*rho*V_gap^2) * (d_pin*H)/A_c，C_D=1+10/Re_d^0.8
+- 歧管：dP_man = (f_man*L_man/D_man + 1) * 0.5*rho*V_man^2，V_man=mdot/(rho*W_man*H_man)
+- 转弯：dP_turn = K_turn * 0.5*rho*V^2
+
+### 关键假设（与热阻模型不同处，需在论文中说明）
+- 压降模型假设**微通道层深度 H_ch 固定**（=H_ch_ref=0.5mm），歧管深高比 r 只改变歧管层
+  深度 H_man=r*H_ch —— 这是"P 随 r 增大而下降"（歧管越深→歧管压降越小）成立的关键；
+- 歧管分配槽宽度 W_man=0.3mm（较窄，使歧管压降占主导），属可标定典型值；
+- 数据标定：P*_pred = c0 + c_f*dP_f + c_pin*dP_pin + c_man*dP_man + c_turn*dP_turn（最小二乘）
+
+### 验证结果（附件2 84组样本）
+| 指标 | 数值 |
+|---|---|
+| Pearson（原始 dP_total vs 数据） | 0.8801 |
+| Spearman | 0.8425 |
+| R²（标定后） | 0.8853 |
+| RMSE / 平均相对误差 | 0.00935 / 6.54% |
+| 模型 dP_total 范围 | 5696~13735 Pa |
+| 标定后分量贡献 | 歧管 52.7%、针肋 26.4%、沿程 20.9%、转弯 0% |
+
+趋势结论（模型与数据一致）：
+- P 随 w 增大而上升（针肋形阻 + 间隙流速增大）
+- P 随 r 增大而下降（歧管越深，歧管压降越小）—— r 趋势几乎完美
+- P 随 n 增大而上升（针肋排数增多）
+
+### 文件
+- `code/pressure_drop_model.py` — 压降模型 PressureDropModel / PressureGeometry
+- `run_pressure_drop.py` — 主程序：计算→最小二乘标定→验证→出图
+- `outputs/pressure_drop_model_predictions.csv`、`outputs/pressure_drop_metrics.txt`
+- `outputs/pressure_drop_trends.png` / `_parity.png` / `_decomposition.png`
+
+### 运行方式
+    python run_pressure_drop.py
+
 ## ⏭️ 下一步（待办）
-- 第一问 B 部分：压降模型、温度非均匀性模型（机理），以及三项指标合理性论证
-- 第一问收尾：影响规律与数据互验表（可基于热阻模型结果展开）
+- 第一问 B 部分：温度非均匀性模型（机理）、三项指标合理性论证
+- 第一问收尾：影响规律与数据互验表（热阻+压降+温度非均匀性）
 - Q2：代理模型（RSM/克里金/RF/BP + LOOCV）
 - Q3~Q5：优化、权重敏感性、不确定性分析
+
