@@ -90,9 +90,42 @@ N_ch=100, w_ch=0.08mm, H_ch_ref=0.5mm, M=4, delta_sub=0.2mm, fin_per_row=3
 ### 运行方式
     python run_pressure_drop.py
 
+
+## ✅ 已完成：第一问·温度非均匀性机理模型（Python 实现）
+
+### 模型概要（参考思路：分配均匀性 + 局部强化均匀性）
+指标 U*（无量纲温度非均匀性，对应附件2 U）：
+    U* = c0 + c1*x_mal + c2*x_w + c3*x_n + c4*n + c5*(r - r_opt)^2
+- x_mal = (0.5*rho*V_man^2)/(dP_f + dP_pin) ：分配不均匀数（歧管动压/通道压降）
+    · r 越大（歧管越深）→ V_man 越小 → x_mal 越小 → 分配越均匀 → U 越小
+    · w、n 越大 → 通道压降越大 → x_mal 越小（针肋混合/均匀化收益）
+- x_w=(w-w_opt)^2、x_n=(n-n_opt)^2：局部强化非均匀（w_opt≈0.2、n_opt≈4 取极小）
+- c4*n：针肋排数线性驱动的局部扰动/分配不均
+- c5*(r-r_opt)^2：歧管最优深度（r_opt≈3.5），过浅分配不均、过深流动扰动
+
+### 验证结果（附件2 84组样本，最小二乘标定）
+| 指标 | 数值 |
+|---|---|
+| R²（标定后） | 0.7594 |
+| RMSE / 平均相对误差 | 0.00948 / 0.95% |
+| 模型 U* 范围 | 0.784~0.871（数据 0.774~0.873）|
+
+趋势结论（模型与数据一致，均含非单调）：
+- U 随 w 先降后升，w≈0.2 最小；随 n 先降后升，n≈4 最小
+- U 随 r 先降后微升，r≈3.5~4 最小（歧管最优深度）
+
+### 文件
+- `code/nonuniformity_model.py` — NonuniformityModel
+- `run_nonuniformity.py` — 主程序：特征→LS标定→验证→出图
+- `outputs/nonuniformity_model_predictions.csv`、`nonuniformity_metrics.txt`
+- `outputs/nonuniformity_trends.png` / `_parity.png` / `_contrib.png`
+
+### 运行方式
+    python run_nonuniformity.py
+
 ## ⏭️ 下一步（待办）
-- 第一问 B 部分：温度非均匀性模型（机理）、三项指标合理性论证
-- 第一问收尾：影响规律与数据互验表（热阻+压降+温度非均匀性）
+- 第一问收尾：影响规律与数据互验总表（热阻+压降+温度非均匀性）、三项指标合理性论证
 - Q2：代理模型（RSM/克里金/RF/BP + LOOCV）
 - Q3~Q5：优化、权重敏感性、不确定性分析
+
 
