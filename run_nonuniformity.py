@@ -17,7 +17,8 @@ from nonuniformity_model import NonuniformityModel
 
 OUT = os.path.join(os.path.dirname(__file__), "outputs")
 os.makedirs(OUT, exist_ok=True)
-DATA_XLSX = glob.glob(r"E:\数学建模大赛\选题D\选题B\附件\*.xlsx")[0]
+DATA_XLSX = [p for p in glob.glob(r"E:\数学建模大赛\选题D\选题B\附件\*.xlsx")
+                 if not os.path.basename(p).startswith("~$")][0]  # 排除Excel锁文件
 
 def unlocked_path(path):
     if not os.path.exists(path):
