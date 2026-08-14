@@ -98,8 +98,10 @@ print(f"  NSGA-II 前沿 {len(Fns)} 点；到网格前沿最短距离: 均值={m
       f"中位数={np.median(min_d):.5f}, 最大={min_d.max():.5f}（≈0 即一致）")
 
 # ---------- 4. 熵权法（数据驱动）----------
-print("\n熵权法（基于附件2 84 组样本）:")
-W_ent = entropy_weights(df[["R", "P", "U"]].values)
+# 注意：熵权-TOPSIS 的权重应从"待决策的决策矩阵"（Pareto 前沿）计算，
+# 而非从训练样本计算（样本中 R 变化带窄，min-max 后熵权虚高，会把最优解拉偏）。
+print("\n熵权法（基于 Pareto 前沿，决策矩阵）:")
+W_ent = entropy_weights(Fp)
 print(f"  w_R={W_ent[0]:.3f}, w_P={W_ent[1]:.3f}, w_U={W_ent[2]:.3f}")
 
 # ---------- 5. 多准则决策（在网格 Pareto 前沿上）----------
