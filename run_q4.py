@@ -78,11 +78,20 @@ for k in order[:8]:
     print(f"  (w={X[i,0]:.3f}, r={X[i,1]:.3f}, n={int(X[i,2])}): 频次 {counts[k]} ({freq[k]*100:.1f}%)  R={F[i,0]:.4f} P={F[i,1]:.4f} U={F[i,2]:.4f}")
 
 # ---------- 4. 方法2：Minimax Regret ----------
+# 注意：全单纯形 minimax 会被"纯角落单目标权重"(如 γ=1)主导——这类偏好不现实
+#（任何应用场景都不会完全忽略某指标；参考4个场景权重的最小分量为0.2）。
+# 故在"合理偏好区间"(各权重>=0.15)上计算 minimax regret 作为主结果；
+# 全单纯形结果作为保守对照保留。
 regret = S.T - opt_score[None, :]        # (N, nW)：每个设计在各权重下的后悔
-worst_regret = regret.max(axis=1)        # 每个设计的最坏后悔
+valid_w = W.min(axis=1) >= 0.15          # 合理偏好区间
+worst_regret = regret[:, valid_w].max(axis=1)          # 主结果
 i_m2 = int(np.argmin(worst_regret))
-print("\n=== 方法2：Minimax Regret ===")
+worst_regret_full = regret.max(axis=1)                 # 全单纯形（保守对照）
+i_m2_full = int(np.argmin(worst_regret_full))
+print("\n=== 方法2：Minimax Regret（合理偏好区间 w_i>=0.15）===")
 print(f"  鲁棒设计: (w={X[i_m2,0]:.3f}, r={X[i_m2,1]:.3f}, n={int(X[i_m2,2])})  最坏后悔={worst_regret[i_m2]:.4f}")
+print(f"  [对照] 全单纯形(含角落权重) → (w={X[i_m2_full,0]:.3f}, r={X[i_m2_full,1]:.3f}, "
+      f"n={int(X[i_m2_full,2])}) 最坏后悔={worst_regret_full[i_m2_full]:.4f}（被角落单目标权重主导，不推荐）")
 for k in np.argsort(worst_regret)[:5]:
     print(f"    (w={X[k,0]:.3f}, r={X[k,1]:.3f}, n={int(X[k,2])}) 最坏后悔={worst_regret[k]:.4f}")
 
@@ -120,13 +129,16 @@ wmap.to_csv(unlocked_path(os.path.join(OUT, "q4_weight_map.csv")), index=False, 
 # 前沿各设计鲁棒性指标
 rob = pd.DataFrame({"w": X[:, 0], "r": X[:, 1], "n": X[:, 2].astype(int),
                     "R": F[:, 0], "P": F[:, 1], "U": F[:, 2],
-                    "worst_regret": worst_regret, "dist_utopia": dist_utopia,
+                    "worst_regret_reasonable": worst_regret,
+                    "worst_regret_fullsimplex": worst_regret_full,
+                    "dist_utopia": dist_utopia,
                     "freq_optimal": np.array([freq[list(uniq).index(i)] if i in uniq else 0.0 for i in range(N)])})
 rob.to_csv(unlocked_path(os.path.join(OUT, "q4_robustness_metrics.csv")), index=False, encoding="utf-8-sig")
 
 with open(unlocked_path(os.path.join(OUT, "q4_robust_design.txt")), "w", encoding="utf-8") as f:
     f.write("Q4 鲁棒设计方案（网格权重采样）\n" + "=" * 46 + "\n")
-    f.write(f"方法2 Minimax Regret: (w={X[i_m2,0]:.3f}, r={X[i_m2,1]:.3f}, n={int(X[i_m2,2])})  最坏后悔={worst_regret[i_m2]:.4f}\n")
+    f.write(f"方法2 Minimax Regret（合理区间 w_i>=0.15）: (w={X[i_m2,0]:.3f}, r={X[i_m2,1]:.3f}, n={int(X[i_m2,2])})  最坏后悔={worst_regret[i_m2]:.4f}\n")
+    f.write(f"  [对照] 全单纯形: (w={X[i_m2_full,0]:.3f}, r={X[i_m2_full,1]:.3f}, n={int(X[i_m2_full,2])}) 最坏后悔={worst_regret_full[i_m2_full]:.4f}\n")
     f.write(f"方法4 膝点(最小距离): (w={X[i_m4,0]:.3f}, r={X[i_m4,1]:.3f}, n={int(X[i_m4,2])})  距理想点={dist_utopia[i_m4]:.4f}\n")
     f.write(f"R/P/U: 方法2→{F[i_m2,0]:.4f}/{F[i_m2,1]:.4f}/{F[i_m2,2]:.4f}  方法4→{F[i_m4,0]:.4f}/{F[i_m4,1]:.4f}/{F[i_m4,2]:.4f}\n")
 print("\n已保存 CSV 与鲁棒方案文本。")

@@ -32,7 +32,8 @@ W = np.array(W)
 S = W[:, 0][:, None] * Fn[:, 0][None, :] + W[:, 1][:, None] * Fn[:, 1][None, :] + W[:, 2][:, None] * Fn[:, 2][None, :]
 opt_idx = S.argmin(1)
 opt_score = S.min(1)
-worst_regret = (S.T - opt_score[None, :]).max(1)
+valid_w = W.min(1) >= 0.15
+worst_regret = (S.T - opt_score[None, :])[:, valid_w].max(1)
 dist_utopia = np.sqrt((Fn ** 2).sum(1))
 i_m2 = int(np.argmin(worst_regret)); i_m4 = int(np.argmin(dist_utopia))
 
